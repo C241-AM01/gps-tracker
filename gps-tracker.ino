@@ -5,8 +5,8 @@
 #include <WiFiClientSecure.h>
 #include <HTTPClient.h>
 
-const char* ssid = "Cove Grand In Lt.4";
-const char* password = "lovewhereyoulive";
+const char* ssid = "temporaryssid";
+const char* password = "temporarypassword";
 const char* serverName = "https://api-tracky-44mt6jvn3a-as.a.run.app/tracker/locationHistory/1";
 const char* trackerId = "2";
 
@@ -130,35 +130,35 @@ String getTimestampString(unsigned long timestamp) {
 
 void handleWiFiAndAPI() {
   if (WiFi.status() == WL_CONNECTED) {
-    //HTTPClient http;
-    //http.begin(client, serverName);
-    //http.addHeader("Content-Type", "application/json");
-    //http.addHeader("Authorization", "Bearer secret");
+    HTTPClient http;
+    http.begin(client, serverName);
+    http.addHeader("Content-Type", "application/json");
+    http.addHeader("Authorization", "Bearer secret");
 
     bool requestSuccessful = false;
-    //int httpResponseCode;
+    int httpResponseCode;
 
     // Send cached data first
     while (cacheIndex > 0) {
       Serial.println("Sending cached requests.. index:" + String(cacheIndex));
       String postData = "{\"tracker_id\": \"" + String(trackerId) + "\",  \"lat\": \"" + String(cachedData[cacheIndex - 1].lat, 6) + "\", \"lon\": \"" + String(cachedData[cacheIndex - 1].lon, 6) + "\", \"timestamp\": \"" + getTimestampString(cachedData[cacheIndex - 1].timestamp) + "\"}";
 
-      //httpResponseCode = http.POST(postData);
+      httpResponseCode = http.POST(postData);
 
       Serial.println(postData);
 
-      //if (httpResponseCode == 200 || httpResponseCode == 201) {
-      //  Serial.println("HTTP POST Successful");
-      //  requestSuccessful = true;
+      if (httpResponseCode == 200 || httpResponseCode == 201) {
+       Serial.println("HTTP POST Successful");
+       requestSuccessful = true;
 
-      //  String response = http.getString(); // Get the response payload
-      //  Serial.println("Response: " + response); // Print the response payload
-      //  cacheIndex--;
-      //} else {
-      //  requestSuccessful = false;
-      //  Serial.println("Error in sending HTTP POST request: " + String(httpResponseCode));
-      //  break;
-      //}
+       String response = http.getString(); // Get the response payload
+       Serial.println("Response: " + response); // Print the response payload
+       cacheIndex--;
+      } else {
+       requestSuccessful = false;
+       Serial.println("Error in sending HTTP POST request: " + String(httpResponseCode));
+       break;
+      }
     }
 
     // Send current GPS data if available
@@ -167,14 +167,14 @@ void handleWiFiAndAPI() {
       String postData = "{\"tracker_id\": \"" + String(trackerId) + "\", \"lat\": \"" + String(gps.location.lat(), 6) + "\", \"lon\": \"" + String(gps.location.lng(), 6) + "\", \"timestamp\": \"" + getTimestampString(millis() / 1000) + "\"}";
      
       Serial.println(postData);
-      //httpResponseCode = http.POST(postData);
+      httpResponseCode = http.POST(postData);
 
-      //if (httpResponseCode == 200 || httpResponseCode == 201) {
-      //  requestSuccessful = true;
-      //  Serial.println("HTTP POST Successful");
-      //} else {
-      //  requestSuccessful = false;
-      //  Serial.println("Error in sending HTTP POST request: " + String(httpResponseCode));
+      if (httpResponseCode == 200 || httpResponseCode == 201) {
+       requestSuccessful = true;
+       Serial.println("HTTP POST Successful");
+      } else {
+       requestSuccessful = false;
+       Serial.println("Error in sending HTTP POST request: " + String(httpResponseCode));
         
         Serial.println("Caching request.. index: " + String(cacheIndex));
 
@@ -187,9 +187,9 @@ void handleWiFiAndAPI() {
         } else {
           Serial.println("Cache is full, unable to store more data.");
         }
-      //}
-      //String response = http.getString(); // Get the response payload
-      //Serial.println("Response: " + response); // Print the response payload
+      }
+      String response = http.getString(); // Get the response payload
+      Serial.println("Response: " + response); // Print the response payload
        
     } else {
       Serial.println("GPS not calibrated yet!");
